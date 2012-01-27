@@ -1,0 +1,168 @@
+#! /usr/bin/env ruby
+
+Main {
+
+  name <<-__
+
+    rego
+
+  __
+
+  synopsis <<-__
+
+    run arbitrary commands easily when files change
+
+  __
+
+  examples <<-__
+
+    # say hai whenever the file foo.txt changes
+    #
+      ~> rego echo hai -- foo.txt
+
+    # say hai whenever any file (recursively) in bar changes 
+    #
+      ~> rego echo hai -- ./bar/ 
+
+    # echo *the file that changed* when any file (recursively) in bar changes 
+    #
+      ~> rego echo "@ was changed" -- ./bar/ 
+
+    # run a specific test whenever anything in lib, test, app, or config changes
+    #
+      ~> rego ruby -Itest ./test/units/foo_test.rb --name teh_test -- {lib,test,app,config}
+
+    # run a specific test whenever it, or your app, has changed
+    #
+      ~> rego ruby -Itest @ -- ./test
+  __
+
+  def run
+    parse_the_command_line
+    print_a_summary_of_watched_files
+    loop_watching_files_and_running_commands
+  end
+
+  def parse_the_command_line
+    pos = ARGV.index('--')
+
+    if pos
+      @command = ARGV[0...pos].join(' ')
+      @paths = ARGV[pos + 1 .. -1]
+    else
+      @command = ARGV[0..-1].join(' ')
+      @paths = []
+    end
+
+    @command = 'echo @' if @paths.empty?
+    @paths = %w[.] if @paths.empty?
+
+    @paths.map!{|path| test(?d, path) ? [path, Dir.glob(File.join(path, '**/**'))] : path}
+    @paths.flatten!
+    @paths.compact!
+    @paths.uniq!
+    @paths.map! do |path|
+      Pathname.new(path).realpath.to_s
+    end
+  end
+
+  def print_a_summary_of_watched_files
+    puts "## #{ @command }"
+    puts "#"
+    puts @paths.join("\n")
+    puts
+  end
+
+  def loop_watching_files_and_running_commands
+    directories = []
+    files = []
+    @paths.each do |path|
+      if test(?d, path)
+        directories.push(path)
+      else
+        files.push(path)
+        directories.push(File.dirname(path))
+      end
+    end
+    directories.uniq!
+    files.uniq!
+
+    stats = {} 
+
+    files.each do |file|
+      begin
+        stats[file] = File.stat(file)
+      rescue
+        nil
+      end
+    end
+
+    fsevent = FSEvent.new
+
+    n = '0'
+    line = '#' * 42
+    $running = false
+
+    rego = proc do |*args|
+      entry = args.shift
+      cmd = entry ? @command.gsub(/@/, entry) : @command
+      puts line
+      puts "# rego.#{ n } @ #{ Time.now.strftime('%H:%M:%S') } - #{ cmd }"
+      puts
+      system(cmd)
+      puts
+      puts "# rego.#{ n } @ #{ Time.now.strftime('%H:%M:%S') } - #{ $?.exitstatus }"
+      puts
+      n.succ!
+    end
+
+    rego[ false ]
+
+    fsevent.watch(directories) do |*args|
+      unless $running
+        $running = true
+
+        args.flatten.each do |dir|
+          glob = File.join(dir, '**/**')
+          entries = Dir.glob(glob)
+
+          entries.each do |entry|
+            entry = File.expand_path(entry)
+            next unless stats.has_key?(entry)
+
+            begin
+              stats[entry] ||= File.stat(entry)
+              before = stats[entry]
+              after = File.stat(entry)
+            rescue
+              next
+            end
+
+            unless before.mtime == after.mtime
+              stats[entry] = after
+              rego[ entry ]
+            end
+          end
+        end
+      end
+      $running = false
+    end
+
+    fsevent.run
+  end
+}
+
+
+BEGIN {
+  this = File.expand_path(__FILE__)
+  bindir = File.dirname(this)
+  rootdir = File.dirname(bindir)
+  libdir = File.join(rootdir, 'lib')
+  rego = File.join(libdir, 'rego.rb')
+
+  require(rego)
+
+  STDOUT.sync = true
+  STDERR.sync = true
+  STDIN.sync = true
+}
