@@ -157,7 +157,8 @@ Main {
 
 
 BEGIN {
-  this = File.expand_path(__FILE__)
+  require 'pathname'
+  this = Pathname.new(__FILE__).realpath.to_s
   bindir = File.dirname(this)
   rootdir = File.dirname(bindir)
   libdir = File.join(rootdir, 'lib')
