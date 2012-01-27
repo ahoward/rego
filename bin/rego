@@ -8,13 +8,16 @@ Main {
 
   __
 
-  synopsis <<-__
+  description <<-__
 
     run arbitrary commands easily when files change
 
   __
 
   examples <<-__
+
+    ### gem install rego
+
 
     # say hai whenever the file foo.txt changes
     #

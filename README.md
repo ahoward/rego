@@ -4,12 +4,22 @@ NAME
 
 SYNOPSIS
   
+      rego
+  
+   [options]+
+
+DESCRIPTION
+  
       run arbitrary commands easily when files change
 
 PARAMETERS
+
   --help, -h 
 
 EXAMPLES
+  
+      ### gem install rego
+  
   
       # say hai whenever the file foo.txt changes
       #
