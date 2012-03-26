@@ -49,6 +49,7 @@ Main {
   def parse_the_command_line
     pos = ARGV.index('--')
 
+=begin
     if pos
       @command = ARGV[0...pos].join(' ')
       @paths = ARGV[pos + 1 .. -1]
@@ -56,7 +57,14 @@ Main {
       @command = ARGV[0..-1].join(' ')
       @paths = []
     end
-
+=end
+    if pos
+      @paths = ARGV[0 ... pos]
+      @command = ARGV[pos + 1 .. -1].join(' ')
+    else
+      @paths = []
+      @command = ARGV[0..-1].join(' ')
+    end
     @command = 'echo @' if @paths.empty?
     @paths = %w[.] if @paths.empty?
 

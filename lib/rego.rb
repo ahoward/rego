@@ -3,7 +3,7 @@ require 'pathname'
 require 'yaml'
 
 module Rego
-  Version = '0.0.1' unless defined?(Version)
+  Version = '1.0.0' unless defined?(Version)
 
   def version
     Rego::Version
