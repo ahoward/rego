@@ -66,15 +66,20 @@ Main {
       @command = ARGV[0..-1].join(' ')
     end
     @command = 'echo @' if @paths.empty?
-    @paths = %w[.] if @paths.empty?
+    @paths = %w[ app lib test config a.rb Rakefile ] if @paths.empty?
 
     @paths.map!{|path| test(?d, path) ? [path, Dir.glob(File.join(path, '**/**'))] : path}
     @paths.flatten!
     @paths.compact!
     @paths.uniq!
     @paths.map! do |path|
-      Pathname.new(path).realpath.to_s
+      begin
+        Pathname.new(path).realpath.to_s
+      rescue Object
+        nil
+      end
     end
+    @paths.compact!
   end
 
   def print_a_summary_of_watched_files
@@ -118,11 +123,11 @@ Main {
       entry = args.shift
       cmd = entry ? @command.gsub(/@/, entry) : @command
       puts line
-      puts "# rego.#{ n } @ #{ Time.now.strftime('%H:%M:%S') } - #{ cmd }"
+      say("# rego.#{ n } @ #{ Time.now.strftime('%H:%M:%S') } - #{ cmd }", :bold => true, :color => :green)
       puts
       system(cmd)
       puts
-      puts "# rego.#{ n } @ #{ Time.now.strftime('%H:%M:%S') } - #{ $?.exitstatus }"
+      say("# rego.#{ n } @ #{ Time.now.strftime('%H:%M:%S') } - #{ $?.exitstatus }", :bold => true, :color => :red)
       puts
       n.succ!
     end
@@ -165,6 +170,61 @@ Main {
 
 
 BEGIN {
+  ANSI = {
+    :clear      => "\e[0m",
+    :reset      => "\e[0m",
+    :erase_line => "\e[K",
+    :erase_char => "\e[P",
+    :bold       => "\e[1m",
+    :dark       => "\e[2m",
+    :underline  => "\e[4m",
+    :underscore => "\e[4m",
+    :blink      => "\e[5m",
+    :reverse    => "\e[7m",
+    :concealed  => "\e[8m",
+    :black      => "\e[30m",
+    :red        => "\e[31m",
+    :green      => "\e[32m",
+    :yellow     => "\e[33m",
+    :blue       => "\e[34m",
+    :magenta    => "\e[35m",
+    :cyan       => "\e[36m",
+    :white      => "\e[37m",
+    :on_black   => "\e[40m",
+    :on_red     => "\e[41m",
+    :on_green   => "\e[42m",
+    :on_yellow  => "\e[43m",
+    :on_blue    => "\e[44m",
+    :on_magenta => "\e[45m",
+    :on_cyan    => "\e[46m",
+    :on_white   => "\e[47m"
+  }
+
+  module Kernel
+  private
+    def say(phrase, *args)
+      options = args.last.is_a?(Hash) ? args.pop : {}
+      options[:color] = args.shift.to_s.to_sym unless args.empty?
+      keys = options.keys
+      keys.each{|key| options[key.to_s.to_sym] = options.delete(key)}
+
+      color = options[:color]
+      bold = options.has_key?(:bold)
+
+      parts = [phrase]
+
+      if STDOUT.tty?
+        parts.unshift(ANSI[color]) if color
+        parts.unshift(ANSI[:bold]) if bold
+        parts.push(ANSI[:clear]) if parts.size > 1
+      end
+
+      method = options[:method] || :puts
+
+      send(method, parts.join)
+    end
+  end
+
   require 'pathname'
   this = Pathname.new(__FILE__).realpath.to_s
   bindir = File.dirname(this)
