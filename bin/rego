@@ -123,11 +123,11 @@ Main {
       entry = args.shift
       cmd = entry ? @command.gsub(/@/, entry) : @command
       puts line
-      say("# rego.#{ n } @ #{ Time.now.strftime('%H:%M:%S') } - #{ cmd }", :bold => true, :color => :green)
+      say("# rego.#{ n } @ #{ Time.now.strftime('%H:%M:%S') } - #{ cmd }", :color => :magenta)
       puts
       system(cmd)
       puts
-      say("# rego.#{ n } @ #{ Time.now.strftime('%H:%M:%S') } - #{ $?.exitstatus }", :bold => true, :color => :red)
+      say("# rego.#{ n } @ #{ Time.now.strftime('%H:%M:%S') } - #{ $?.exitstatus }", :color => :yellow)
       puts
       n.succ!
     end
