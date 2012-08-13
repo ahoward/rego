@@ -23,21 +23,21 @@ EXAMPLES
   
       # say hai whenever the file foo.txt changes
       #
-        ~> rego echo hai -- foo.txt
+        ~> rego foo.txt -- echo hai
   
       # say hai whenever any file (recursively) in bar changes 
       #
-        ~> rego echo hai -- ./bar/ 
+        ~> rego ./bar/ -- echo hai
   
       # echo *the file that changed* when any file (recursively) in bar changes 
       #
-        ~> rego echo "@ was changed" -- ./bar/ 
+        ~> rego ./bar/ -- echo "@ was changed"
   
       # run a specific test whenever anything in lib, test, app, or config changes
       #
-        ~> rego ruby -Itest ./test/units/foo_test.rb --name teh_test -- {lib,test,app,config}
+        ~> rego {lib,test,app,config} -- ruby -Itest ./test/units/foo_test.rb --name teh_test
   
       # run a specific test whenever it, or your app, has changed
       #
-        ~> rego ruby -Itest @ -- ./test
+        ~> rego ./test -- ruby -Itest @
 
