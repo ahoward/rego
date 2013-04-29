@@ -3,7 +3,7 @@ require 'pathname'
 require 'yaml'
 
 module Rego
-  Version = '1.1.0' unless defined?(Version)
+  Version = '1.2.0' unless defined?(Version)
 
   def version
     Rego::Version
@@ -12,8 +12,8 @@ module Rego
   def dependencies
     {
       'main'       => [ 'main'       , ' >= 4.8.1'   ] , 
-      'rb-fsevent' => [ 'rb-fsevent' , ' >= 0.4.3.1' ] , 
-      #'listen'     => [ 'listen'     , ' >= 1.0.0'   ] ,
+      #'rb-fsevent' => [ 'rb-fsevent' , ' >= 0.4.3.1' ] , 
+      'listen'     => [ 'listen'     , ' >= 1.0.2'   ] ,
     }
   end
 

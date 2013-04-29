@@ -47,23 +47,23 @@ Main {
   end
 
   def parse_the_command_line
-    pos = ARGV.index('--')
+    pos = argv.index('--')
 
 =begin
     if pos
-      @command = ARGV[0...pos].join(' ')
-      @paths = ARGV[pos + 1 .. -1]
+      @command = argv[0...pos].join(' ')
+      @paths = argv[pos + 1 .. -1]
     else
-      @command = ARGV[0..-1].join(' ')
+      @command = argv[0..-1].join(' ')
       @paths = []
     end
 =end
     if pos
-      @paths = ARGV[0 ... pos]
-      @command = ARGV[pos + 1 .. -1].join(' ')
+      @paths = argv[0 ... pos]
+      @command = argv[pos + 1 .. -1].join(' ')
     else
       @paths = []
-      @command = ARGV[0..-1].join(' ')
+      @command = argv[0..-1].join(' ')
     end
     @command = 'echo @' if @paths.empty?
     @paths = %w[ app lib test config a.rb Rakefile ] if @paths.empty?
@@ -140,17 +140,19 @@ Main {
 
     rego[ false ]
 
-    trap('SIGINT'){ exit!(42) }
+    begin
+      Listen.to!(*@directories, :latency => 0.1) do |modified, added, removed|
+        [modified, added, removed].flatten.compact.uniq.each do |path|
+          rego[path]
+        end
+      end
+    rescue SignalException
+      STDERR.reopen('/dev/null', 'w+')
+      exit(42)
+    end
+
 
 =begin
-    Listen.to!(*@directories, :latency => 0.1) do |modified, added, removed|
-      [modified, added, removed].flatten.compact.uniq.each do |path|
-        rego[path]
-      end
-    end
-=end
-
-
     fsevent = FSEvent.new
 
     fsevent.watch(
@@ -191,11 +193,43 @@ Main {
     end
 
     fsevent.run
+=end
   end
 }
 
 
 BEGIN {
+# setup a child process to catch signals and brutally shut down the parent as
+# a monkey-patch to listen/rb-fsevent's busted ctrl-c handling...
+#
+  unless((pid = fork))
+    ppid = Process.ppid
+
+    begin
+      trap('SIGINT'){
+        %w(
+          SIGTERM SIGINT SIGQUIT SIGKILL
+        ).each do |signal|
+
+          begin
+            Process.kill("-#{ signal }", ppid)
+          rescue Object
+            nil
+          end
+
+          sleep(rand)
+        end
+      }
+
+      loop do
+        Process.kill(0, ppid)
+        sleep(1)
+      end
+    rescue Object => e
+      exit!(0)
+    end
+  end
+
   ANSI = {
     :clear      => "\e[0m",
     :reset      => "\e[0m",

@@ -3,7 +3,7 @@
 
 Gem::Specification::new do |spec|
   spec.name = "rego"
-  spec.version = "1.1.0"
+  spec.version = "1.2.0"
   spec.platform = Gem::Platform::RUBY
   spec.summary = "rego"
   spec.description = "description: rego kicks the ass"
@@ -27,7 +27,7 @@ Gem::Specification::new do |spec|
   
     spec.add_dependency(*["main", " >= 4.8.1"])
   
-    spec.add_dependency(*["rb-fsevent", " >= 0.4.3.1"])
+    spec.add_dependency(*["listen", " >= 1.0.2"])
   
 
   spec.extensions.push(*[])
