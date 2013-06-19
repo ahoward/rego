@@ -3,7 +3,7 @@
 
 Gem::Specification::new do |spec|
   spec.name = "rego"
-  spec.version = "1.4.0"
+  spec.version = "1.5.1"
   spec.platform = Gem::Platform::RUBY
   spec.summary = "rego"
   spec.description = "description: rego kicks the ass"
@@ -11,15 +11,14 @@ Gem::Specification::new do |spec|
   spec.files =
 ["README",
  "Rakefile",
- "bar",
- "bar/foo",
  "bin",
  "bin/rego",
+ "d",
+ "d/a.rb",
+ "d/rego",
  "lib",
  "lib/rego.rb",
- "rego.gemspec",
- "~",
- "~/foo"]
+ "rego.gemspec"]
 
   spec.executables = ["rego"]
   

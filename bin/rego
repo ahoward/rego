@@ -47,26 +47,20 @@ Main {
   end
 
   def parse_the_command_line
-    pos = argv.index('--')
+    argv = ARGV.map{|arg| "#{ arg }"}
 
-=begin
-    if pos
-      @command = argv[0...pos].join(' ')
-      @paths = argv[pos + 1 .. -1]
-    else
-      @command = argv[0..-1].join(' ')
-      @paths = []
+    @paths, @command = argv.join(' ').split('--', 2)
+
+    @paths = @paths.to_s.strip.scan(/[^\s]+/)
+    @command = @command.to_s.strip
+
+    if @paths.empty?
+      @paths.push('.')
     end
-=end
-    if pos
-      @paths = argv[0 ... pos]
-      @command = argv[pos + 1 .. -1].join(' ')
-    else
-      @paths = []
-      @command = argv[0..-1].join(' ')
+
+    if @command.empty?
+      @command = 'echo @'
     end
-    @command = 'echo @' if @paths.empty?
-    @paths = %w[ app lib test config a.rb Rakefile ] if @paths.empty?
 
     @paths.map!{|path| test(?d, path) ? [path, Dir.glob(File.join(path, '**/**'))] : path}
     @paths.flatten!
@@ -74,7 +68,7 @@ Main {
     @paths.uniq!
     @paths.map! do |path|
       begin
-        Pathname.new(path).realpath.to_s
+        Rego.realpath(path)
       rescue Object
         nil
       end
@@ -95,9 +89,9 @@ Main {
 
     @paths.each do |path|
       if test(?d, path)
-        @directories.push(path)
+        @directories.push(Rego.realpath(path))
       else
-        @files.push(path)
+        @files.push(Rego.realpath(path))
         @directories.push(Rego.realpath(File.dirname(path)))
       end
     end
@@ -143,10 +137,56 @@ Main {
   #
     fsevent = FSEvent.new
 
+    options = {
+      :latency     => 0.42,
+      :no_defer    => true,
+      :file_events => true,
+      :since_when  => 0
+    }
+
+    fsevent.watch(@directories, options) do |*args|
+      unless $running
+        $running = true
+
+        args.flatten.each do |dir|
+          glob = File.join(dir, '**/**')
+          entries = Dir.glob(glob)
+
+          entries.each do |entry|
+            entry = File.expand_path(entry)
+            next unless stats.has_key?(entry)
+
+            begin
+              stats[entry] ||= File.stat(entry)
+              before = stats[entry]
+              after = File.stat(entry)
+            rescue
+              next
+            end
+
+            unless before.mtime == after.mtime
+              stats[entry] = after
+              rego[ entry ]
+            end
+          end
+        end
+      end
+      $running = false
+    end
+
+    begin
+      fsevent.run
+    rescue SignalException
+      exit(0)
+    end
+  end
+=begin
+    fsevent = FSEvent.new
+
     fsevent.watch(
 
       @directories,
-        :latency     => 0.00042,
+        :latency     => 0.42,
         :no_defer    => true,
         :file_events => true,
         :watch_root  => true,
@@ -188,6 +228,7 @@ Main {
       exit(0)
     end
   end
+=end
 }
 
 
@@ -195,6 +236,7 @@ BEGIN {
 # setup a child process to catch signals and brutally shut down the parent as
 # a monkey-patch to listen/rb-fsevent's busted ctrl-c handling...
 #
+if false
   unless((pid = fork))
     ppid = Process.ppid
 
@@ -222,6 +264,7 @@ BEGIN {
       exit!(0)
     end
   end
+end
 
   require 'pathname'
 

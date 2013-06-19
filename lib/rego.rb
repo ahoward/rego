@@ -1,9 +1,10 @@
 require 'time'
 require 'pathname'
 require 'yaml'
+require 'tmpdir'
 
 module Rego
-  Version = '1.4.0' unless defined?(Version)
+  Version = '1.5.1' unless defined?(Version)
 
   def version
     Rego::Version
@@ -36,7 +37,24 @@ module Rego
   end
 
   def realpath(path)
-    Pathname.new(path.to_s).realpath.to_s
+    Pathname.new(path).realpath.to_s
+  end
+
+  def tmpdir(&block)
+    tmpdir = File.join(Dir.tmpdir, ['rego', Process.ppid.to_s, Process.pid.to_s, Thread.current.object_id.to_s].join('-') + '.d')
+
+    FileUtils.mkdir_p(tmpdir)
+
+    if block
+      begin
+        Dir.chdir(tmpdir, &block)
+      ensure
+        FileUtils.rm_rf(tmpdir)
+        at_exit{ `rm -rf #{ tmpdir }` }
+      end
+    else
+      tmpdir
+    end
   end
 
   def say(phrase, *args)
@@ -108,4 +126,3 @@ if defined?(gem)
     require(lib)
   end
 end
-
