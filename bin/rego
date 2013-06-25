@@ -135,6 +135,9 @@ Main {
       end
 
   #
+    rego.call()
+
+  #
     fsevent = FSEvent.new
 
     options = {
