@@ -6,9 +6,7 @@ NAME
 SYNOPSIS
 ---------------
   
-    rego
-
- [options]+
+  rego ./files ./to ./watch -- command-to-run
 
 INSTALL
 ---------------
