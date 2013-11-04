@@ -1,27 +1,27 @@
 NAME
 ---------------
   
-  rego
+rego
 
 SYNOPSIS
 ---------------
   
-  rego ./files ./to ./watch -- command-to-run
+rego ./files ./to ./watch -- command-to-run
 
 INSTALL
 ---------------
 
-  gem install rego
+gem install rego
 
 DESCRIPTION
 ---------------
   
-  run arbitrary commands easily when files change
+run arbitrary commands easily when files change
 
 PARAMETERS
 ---------------
 
-  --help, -h 
+--help, -h 
 
 EXAMPLES
 ---------------
