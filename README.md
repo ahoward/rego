@@ -18,7 +18,7 @@ INSTALL
 DESCRIPTION
 ---------------
   
-    run arbitrary commands easily when files change
+  run arbitrary commands easily when files change
 
 PARAMETERS
 ---------------
@@ -28,8 +28,7 @@ PARAMETERS
 EXAMPLES
 ---------------
   
-  ### gem install rego
-
+```bash
 
   # say hai whenever the file foo.txt changes
   #
@@ -51,3 +50,4 @@ EXAMPLES
   #
     ~> rego ./test -- ruby -Itest @
 
+```
