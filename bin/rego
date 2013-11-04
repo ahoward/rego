@@ -84,12 +84,14 @@ Main {
   end
 
   def loop_watching_files_and_running_commands
+    @initial_directories = []
     @directories = []
     @files = []
 
     @paths.each do |path|
       if test(?d, path)
         @directories.push(Rego.realpath(path))
+        @initial_directories.push(Rego.realpath(path))
       else
         @files.push(Rego.realpath(path))
         @directories.push(Rego.realpath(File.dirname(path)))
@@ -135,19 +137,54 @@ Main {
       end
 
   #
-    rego.call()
+    q = Queue.new
+
+    Thread.new do
+      loop do
+        rego.call(q.pop)
+      end
+    end
+    
 
   #
     fsevent = FSEvent.new
 
     options = {
-      :latency     => 0.42,
+      :latency     => 0.01,
       :no_defer    => true,
       :file_events => true,
       :since_when  => 0
     }
 
-    fsevent.watch(@directories, options) do |*args|
+    watching = (@files + @directories).inject(Hash.new){|hash, path| hash.update(path => true)}
+
+    fsevent.watch(@files + @directories, options) do |*args|
+      args.flatten.compact.each do |path|
+        path =
+          begin
+            Rego.realpath(path)
+          rescue Object
+            next
+          end
+
+        @initial_directories.each do |directory|
+          if path =~ /^#{ Regexp.escape(directory) }\b/
+            watching[path] = true
+          end
+        end
+
+        if watching[path]
+          before = stats[path]
+          after = File.stat(path)
+
+          if before.nil? or after.mtime > before.mtime
+            stats[path] = after
+            q.push(path)
+          end
+        end
+      end
+
+=begin
       unless $running
         $running = true
 
@@ -175,6 +212,7 @@ Main {
         end
       end
       $running = false
+=end
     end
 
     begin
@@ -270,6 +308,7 @@ if false
 end
 
   require 'pathname'
+  require 'thread'
 
   this = Pathname.new(__FILE__).realpath.to_s
   bindir = File.dirname(this)

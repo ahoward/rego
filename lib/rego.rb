@@ -4,7 +4,7 @@ require 'yaml'
 require 'tmpdir'
 
 module Rego
-  Version = '1.5.2' unless defined?(Version)
+  Version = '1.6.0' unless defined?(Version)
 
   def version
     Rego::Version
