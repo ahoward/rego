@@ -3,6 +3,9 @@ This.author = "Ara T. Howard"
 This.email = "ara.t.howard@gmail.com"
 This.homepage = "https://github.com/ahoward/#{ This.lib }"
 
+task :license do
+  open('LICENSE', 'w'){|fd| fd.puts "Ruby"}
+end
 
 task :default do
   puts((Rake::Task.tasks.map{|task| task.name.gsub(/::/,':')} - ['default']).sort)
@@ -29,7 +32,7 @@ def run_tests!(which = nil)
 
   test_rbs.each_with_index do |test_rb, index|
     testno = index + 1
-    command = "#{ File.basename(This.ruby) } -I ./lib -I ./test/lib #{ test_rb }"
+    command = "#{ This.ruby } -w -I ./lib -I ./test/lib #{ test_rb }"
 
     puts
     say(div, :color => :cyan, :bold => true)
@@ -60,7 +63,7 @@ end
 task :gemspec do
   ignore_extensions = ['git', 'svn', 'tmp', /sw./, 'bak', 'gem']
   ignore_directories = ['pkg']
-  ignore_files = ['test/log', 'a.rb'] + Dir['db/*'] + %w'db'
+  ignore_files = ['test/log']
 
   shiteless = 
     lambda do |list|
@@ -87,9 +90,10 @@ task :gemspec do
   files       = shiteless[Dir::glob("**/**")]
   executables = shiteless[Dir::glob("bin/*")].map{|exe| File.basename(exe)}
   #has_rdoc    = true #File.exist?('doc')
-  test_files  = test(?e, "test/#{ lib }.rb") ? "test/#{ lib }.rb" : nil
+  test_files  = "test/#{ lib }.rb" if File.file?("test/#{ lib }.rb")
   summary     = object.respond_to?(:summary) ? object.summary : "summary: #{ lib } kicks the ass"
   description = object.respond_to?(:description) ? object.description : "description: #{ lib } kicks the ass"
+  license     = object.respond_to?(:license) ? object.license : "Ruby"
 
   if This.extensions.nil?
     This.extensions = []
@@ -100,7 +104,6 @@ task :gemspec do
   end
   extensions = [extensions].flatten.compact
 
-# TODO
   if This.dependencies.nil?
     dependencies = []
   else
@@ -127,6 +130,7 @@ task :gemspec do
             spec.platform = Gem::Platform::RUBY
             spec.summary = <%= lib.inspect %>
             spec.description = <%= description.inspect %>
+            spec.license = <%= license.inspect %>
 
             spec.files =\n<%= files.sort.pretty_inspect %>
             spec.executables = <%= executables.inspect %>
@@ -188,8 +192,8 @@ task :readme do
   end
 
   template = 
-    if test(?e, 'readme.erb')
-      Template{ IO.read('readme.erb') }
+    if test(?e, 'README.erb')
+      Template{ IO.read('README.erb') }
     else
       Template {
         <<-__
@@ -293,7 +297,7 @@ BEGIN {
 
 # discover full path to this ruby executable
 #
-  c = RbConfig::CONFIG
+  c = Config::CONFIG
   bindir = c["bindir"] || c['BINDIR']
   ruby_install_name = c['ruby_install_name'] || c['RUBY_INSTALL_NAME'] || 'ruby'
   ruby_ext = c['EXEEXT'] || ''

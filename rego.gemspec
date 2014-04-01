@@ -3,14 +3,14 @@
 
 Gem::Specification::new do |spec|
   spec.name = "rego"
-  spec.version = "1.6.0"
+  spec.version = "1.7.0"
   spec.platform = Gem::Platform::RUBY
   spec.summary = "rego"
   spec.description = "description: rego kicks the ass"
+  spec.license = "Ruby"
 
   spec.files =
-["2013-06-22-your-filename.md",
- "README",
+["README.md",
  "Rakefile",
  "bin",
  "bin/rego",
@@ -27,7 +27,7 @@ Gem::Specification::new do |spec|
   
     spec.add_dependency(*["main", " >= 4.8"])
   
-    spec.add_dependency(*["rb-fsevent", " >= 0.9"])
+    spec.add_dependency(*["rb-fsevent", " >= 0.9.4"])
   
 
   spec.extensions.push(*[])

@@ -4,7 +4,7 @@ require 'yaml'
 require 'tmpdir'
 
 module Rego
-  Version = '1.6.0' unless defined?(Version)
+  Version = '1.7.0' unless defined?(Version)
 
   def version
     Rego::Version
@@ -13,7 +13,7 @@ module Rego
   def dependencies
     {
       'main'       => [ 'main'       , ' >= 4.8'   ] ,
-      'rb-fsevent' => [ 'rb-fsevent' , ' >= 0.9'   ] ,
+      'rb-fsevent' => [ 'rb-fsevent' , ' >= 0.9.4' ] ,
     }
   end
 

@@ -40,6 +40,13 @@ Main {
       ~> rego ./test -- ruby -Itest @
   __
 
+  option('--replacement=replacement', '-r'){
+    default '@'
+  }
+
+  option('--no-replacement', '-n'){
+  }
+
   def run
     parse_the_command_line
     print_a_summary_of_watched_files
@@ -47,11 +54,23 @@ Main {
   end
 
   def parse_the_command_line
-    argv = ARGV.map{|arg| "#{ arg }"}
+  # FIXME - this works around main.rb dropping '--' on the floor in @argv so
+  # we restore it and re-parse params to restore valid state.  should be
+  # forward compatible if main fixes this though...
+  #
+    argv, command = ARGV.join(' ').split(/\s+--\s+/).map{|value| value.to_s.strip}
+    @argv = argv.scan(/[^\s]+/)
+    parse_parameters()
 
-    @paths, @command = argv.join(' ').split('--', 2)
+    @replacement = params[:replacement].value
 
-    @paths = @paths.to_s.strip.scan(/[^\s]+/)
+    if params['no-replacement'].given?
+      @replacement = false
+    end
+
+    @paths, @command = @argv, command
+
+    @paths = @paths.join(' ').strip.scan(/[^\s]+/)
     @command = @command.to_s.strip
 
     if @paths.empty?
@@ -59,7 +78,7 @@ Main {
     end
 
     if @command.empty?
-      @command = 'echo @'
+      @command = false
     end
 
     @paths.map!{|path| test(?d, path) ? [path, Dir.glob(File.join(path, '**/**'))] : path}
@@ -119,8 +138,14 @@ Main {
   #
     rego =
       proc do |*args|
-        path = args.shift
-        cmd = path ? @command.gsub(/@/, path) : @command
+        path = args.flatten.compact.shift
+
+        cmd =
+          if @command
+            @replacement ? @command.gsub(@replacement, path) : @command
+          else
+            "echo #{ path.inspect }"
+          end
 
         puts line
 
@@ -138,10 +163,18 @@ Main {
 
   #
     q = Queue.new
+    @started_at = nil
+    @fucking_hack = 1.42
 
     Thread.new do
       loop do
-        rego.call(q.pop)
+        args = q.pop
+
+        running_for = Time.now.to_f - @started_at
+
+        if running_for > @fucking_hack 
+          rego.call(*args)
+        end
       end
     end
     
@@ -179,6 +212,7 @@ Main {
 
           if before.nil? or after.mtime > before.mtime
             stats[path] = after
+            @started_at ||= Time.now.to_f
             q.push(path)
           end
         end
