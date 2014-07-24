@@ -81,7 +81,20 @@ Main {
       @command = false
     end
 
-    @paths.map!{|path| test(?d, path) ? [path, Dir.glob(File.join(path, '**/**'))] : path}
+    @paths.map! do |path|
+      if test(?d, path)
+        globbed = 
+          Dir.glob(
+            File.join(path, '**/**'),
+            File::FNM_DOTMATCH
+          ).delete_if{|path| %w[ .. ].include?(File.basename(path))}
+
+        [path, globbed]
+      else
+        path
+      end
+    end
+
     @paths.flatten!
     @paths.compact!
     @paths.uniq!
@@ -122,7 +135,7 @@ Main {
 
     stats = {} 
 
-    @files.each do |file|
+    (@directories + @files).each do |file|
       begin
         stats[file] = File.stat(file)
       rescue
@@ -198,20 +211,24 @@ Main {
             next
           end
 
-        @initial_directories.each do |directory|
-          if path =~ /^#{ Regexp.escape(directory) }\b/
-            watching[path] = true
+        ignore = false # TODO
+
+        unless ignore
+          @initial_directories.each do |directory|
+            if path =~ /^#{ Regexp.escape(directory) }\b/
+              watching[path] = true
+            end
           end
-        end
 
-        if watching[path]
-          before = stats[path]
-          after = File.stat(path)
+          if watching[path]
+            before = stats[path]
+            after = File.stat(path)
 
-          if before.nil? or after.mtime > before.mtime
-            stats[path] = after
-            @started_at ||= Time.now.to_f
-            q.push(path)
+            if before.nil? or after.mtime > before.mtime
+              stats[path] = after
+              @started_at ||= Time.now.to_f
+              q.push(path)
+            end
           end
         end
       end
