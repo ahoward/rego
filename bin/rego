@@ -200,10 +200,20 @@ Main {
       :since_when  => 0
     }
 
-    watching = (@files + @directories).inject(Hash.new){|hash, path| hash.update(path => true)}
+    watchlist = (@files + @directories).uniq
 
-    fsevent.watch(@files + @directories, options) do |*args|
-      args.flatten.compact.each do |path|
+    watching = watchlist.inject(Hash.new){|hash, path| hash.update(path => true)}
+
+    fsevent.watch(watchlist, options) do |directories, meta|
+      meta   = Map.for(meta)
+      events = meta.events
+      paths  = []
+
+      meta.events.each do |event|
+        paths << event.path
+      end
+
+      paths.flatten.compact.sort.uniq.each do |path|
         path =
           begin
             Rego.realpath(path)

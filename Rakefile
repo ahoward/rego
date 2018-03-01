@@ -277,7 +277,7 @@ BEGIN {
 #
   version = ENV['VERSION']
   unless version
-    require "./lib/#{ This.lib }"
+    require "./lib/#{ This.lib }/version.rb"
     This.name = lib.capitalize
     This.object = eval(This.name)
     version = This.object.send(:version)
@@ -297,7 +297,7 @@ BEGIN {
 
 # discover full path to this ruby executable
 #
-  c = Config::CONFIG
+  c = RbConfig::CONFIG
   bindir = c["bindir"] || c['BINDIR']
   ruby_install_name = c['ruby_install_name'] || c['RUBY_INSTALL_NAME'] || 'ruby'
   ruby_ext = c['EXEEXT'] || ''
