@@ -14,7 +14,7 @@ module Rego
   end
 
   def Rego.libdir(*args, &block)
-    @libdir ||= File.expand_path(__FILE__).sub(/\.rb$/,'')
+    @libdir ||= File.basename(File.expand_path(__FILE__).sub(/\.rb$/,''))
     args.empty? ? @libdir : File.join(@libdir, *args)
   ensure
     if block
