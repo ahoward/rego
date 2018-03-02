@@ -3,7 +3,7 @@
 
 Gem::Specification::new do |spec|
   spec.name = "rego"
-  spec.version = "2.0.1"
+  spec.version = "2.1.0"
   spec.platform = Gem::Platform::RUBY
   spec.summary = "rego"
   spec.description = "description: rego kicks the ass"

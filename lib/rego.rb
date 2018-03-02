@@ -4,7 +4,7 @@ require 'yaml'
 require 'tmpdir'
 
 module Rego
-  require_relative 'rego/version.rb'
+  require_relative 'rego/_lib.rb'
   require_relative 'rego/utils.rb'
 end
 
