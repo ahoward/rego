@@ -261,28 +261,29 @@ BEGIN {
 #
   This = OpenStruct.new
 
-  This.file = File.expand_path(__FILE__)
-  This.dir = File.dirname(This.file)
+  This.file   = File.expand_path(__FILE__)
+  This.dir    = File.dirname(This.file)
   This.pkgdir = File.join(This.dir, 'pkg')
 
-# grok lib
-#
-  lib = ENV['LIB']
-  unless lib
-    lib = File.basename(Dir.pwd).sub(/[-].*$/, '')
-  end
-  This.lib = lib
+  This.lib    = File.basename(Dir.pwd)
+  This._lib    = "#{ This.dir }/lib/#{ This.lib }/_lib.rb" 
 
-# grok version
+# load meta lib info
 #
-  version = ENV['VERSION']
-  unless version
-    require "./lib/#{ This.lib }/version.rb"
-    This.name = lib.capitalize
-    This.object = eval(This.name)
-    version = This.object.send(:version)
+  a = Object.constants.dup
+  require This._lib
+  b = Object.constants.dup
+  added = b - a
+  const = added.first
+
+  if added.size > 1
+    STDERR.puts "WARNING: defined multiple constants #{ added.inspect } in #{ _lib }, using #{ const } !!!"
   end
-  This.version = version
+
+  This.const   = const
+  This.object  = Object.const_get(This.const)
+  This.name    = This.object.name
+  This.version = This.object.send(:version)
 
 # see if dependencies are export by the module
 #
@@ -297,12 +298,12 @@ BEGIN {
 
 # discover full path to this ruby executable
 #
-  c = RbConfig::CONFIG
-  bindir = c["bindir"] || c['BINDIR']
+  c                 = RbConfig::CONFIG
+  bindir            = c["bindir"] || c['BINDIR']
   ruby_install_name = c['ruby_install_name'] || c['RUBY_INSTALL_NAME'] || 'ruby'
-  ruby_ext = c['EXEEXT'] || ''
-  ruby = File.join(bindir, (ruby_install_name + ruby_ext))
-  This.ruby = ruby
+  ruby_ext          = c['EXEEXT'] || ''
+  ruby              = File.join(bindir, (ruby_install_name + ruby_ext))
+  This.ruby         = ruby
 
 # some utils
 #
