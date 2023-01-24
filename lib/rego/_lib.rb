@@ -1,5 +1,5 @@
 module Rego
-  Version = '2.1.0' unless defined?(Version)
+  Version = '2.2.0' unless defined?(Version)
 
   def Rego.version
     Rego::Version
@@ -7,9 +7,9 @@ module Rego
 
   def Rego.dependencies
     {
-      'main'       =>  [ 'main'       , ' ~> 6.0'    ]  , 
-      'map'        =>  [ 'map'        , ' ~> 6.6'  ]  , 
-      'rb-fsevent' =>  [ 'rb-fsevent' , ' ~> 0.10' ]  , 
+      'main'       =>  [ 'main'       , ' ~> 6.3.0'    ]  , 
+      'map'        =>  [ 'map'        , ' ~> 6.6.0'  ]  , 
+      'rb-fsevent' =>  [ 'rb-fsevent' , ' ~> 0.11.2' ]  , 
     }
   end
 
