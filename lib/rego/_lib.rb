@@ -1,5 +1,5 @@
 module Rego
-  Version = '2.2.0' unless defined?(Version)
+  Version = '3.1.0' unless defined?(Version)
 
   def Rego.version
     Rego::Version
