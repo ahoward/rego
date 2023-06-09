@@ -2,10 +2,11 @@ require 'time'
 require 'pathname'
 require 'yaml'
 require 'tmpdir'
+require 'shellwords'
 
 module Rego
-  require_relative 'rego/_lib.rb'
-  require_relative 'rego/utils.rb'
+  require_relative 'rego/_lib'
+  require_relative 'rego/utils'
 end
 
 # gems

@@ -1,34 +1,34 @@
 module Rego
-  Version = '3.1.0' unless defined?(Version)
+  Version = '3.2.1' unless defined?(Version)
 
-  def Rego.version
+  def self.version
     Rego::Version
   end
 
-  def Rego.dependencies
+  def self.dependencies
     {
-      'main'       =>  [ 'main'       , ' ~> 6.3.0'    ]  , 
-      'map'        =>  [ 'map'        , ' ~> 6.6.0'  ]  , 
-      'rb-fsevent' =>  [ 'rb-fsevent' , ' ~> 0.11.2' ]  , 
+      'main' => ['main', ' ~> 6.3.0'],
+      'map' => ['map', ' ~> 6.6.0'],
+      'listen' => ['listen', ' ~> 3.8.0']
     }
   end
 
-  def Rego.libdir(*args, &block)
-    @libdir ||= File.basename(File.expand_path(__FILE__).sub(/\.rb$/,''))
+  def self.libdir(*args, &block)
+    @libdir ||= File.basename(File.expand_path(__FILE__).sub(/\.rb$/, ''))
     args.empty? ? @libdir : File.join(@libdir, *args)
   ensure
     if block
       begin
         $LOAD_PATH.unshift(@libdir)
-        block.call()
+        block.call
       ensure
-        $LOAD_PATH.shift()
+        $LOAD_PATH.shift
       end
     end
   end
 
-  def Rego.load(*libs)
+  def self.load(*libs)
     libs = libs.join(' ').scan(/[^\s+]+/)
-    Rego.libdir{ libs.each{|lib| Kernel.load(lib) } }
+    Rego.libdir { libs.each { |lib| Kernel.load(lib) } }
   end
 end

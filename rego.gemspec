@@ -3,24 +3,14 @@
 
 Gem::Specification::new do |spec|
   spec.name = "rego"
-  spec.version = "3.1.0"
+  spec.version = "3.2.1"
   spec.platform = Gem::Platform::RUBY
   spec.summary = "rego"
   spec.description = "description: rego kicks the ass"
   spec.license = "Ruby"
 
   spec.files =
-["README.md",
- "Rakefile",
- "bin",
- "bin/rego",
- "lib",
- "lib/rego",
- "lib/rego.rb",
- "lib/rego/_lib.rb",
- "lib/rego/utils.rb",
- "rego.gemspec"]
-
+["README.md", "Rakefile", "bin", "bin/rego", "lib", "lib/rego", "lib/rego.rb", "lib/rego/_lib.rb", "lib/rego/utils.rb", "rego.gemspec"]
   spec.executables = ["rego"]
   
   spec.require_path = "lib"
@@ -32,7 +22,7 @@ Gem::Specification::new do |spec|
   
     spec.add_dependency(*["map", " ~> 6.6.0"])
   
-    spec.add_dependency(*["rb-fsevent", " ~> 0.11.2"])
+    spec.add_dependency(*["listen", " ~> 3.8.0"])
   
 
   spec.extensions.push(*[])

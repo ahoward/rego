@@ -1,24 +1,15 @@
 #! /usr/bin/env ruby
 
-Main {
+Main do
+  name 'rego'
 
-  name <<-__
-
-    rego
-
-  __
+  version Rego.version
 
   description <<-__
-
     run arbitrary commands easily when files change
-
   __
 
   examples <<-__
-
-    ### gem install rego
-
-    
     # say hai whenever the file foo.txt changes
     #
       ~> rego foo.txt -- echo hai
@@ -40,344 +31,134 @@ Main {
       ~> rego ./test -- ruby -Itest @
   __
 
-  option('--replacement=replacement', '-r'){
-    default '@'
-  }
-
-  option('--no-replacement', '-n'){
-  }
+  option('--path=path', '-p')
+  option('--paths=paths')
+  option('--command=command', '-c')
+  option('--version', '-v')
 
   def run
-    parse_the_command_line
-    print_a_summary_of_watched_files
-    loop_watching_files_and_running_commands
+    if params[:version].given?
+      puts version
+      exit
+    end
+
+    parse_the_command_line!
+    print_a_summary_of_watched_files!
+    loop_watching_files_and_running_commands!
   end
 
-  def parse_the_command_line
-  # FIXME - this works around main.rb dropping '--' on the floor in @argv so
-  # we restore it and re-parse params to restore valid state.  should be
-  # forward compatible if main fixes this though...
-  #
-    argv, command = ARGV.join(' ').split(/\s+--\s+/).map{|value| value.to_s.strip}
-    @argv = argv.scan(/[^\s]+/)
-    parse_parameters()
+  def parse_the_command_line!
+    @paths = @params[:paths].values + @params[:path].values
+    @command = @params[:command].values
 
-    @replacement = params[:replacement].value
+    state = :paths
 
-    if params['no-replacement'].given?
-      @replacement = false
-    end
+    @argv.each do |arg|
+      if arg.strip == '--'
+        state = :commands
+        next
+      end
 
-    @paths, @command = @argv, command
-
-    @paths = @paths.join(' ').strip.scan(/[^\s]+/)
-    @command = @command.to_s.strip
-
-    if @paths.empty?
-      @paths.push('.')
-    end
-
-    if @command.empty?
-      @command = false
-    end
-
-    @paths.map! do |path|
-      if test(?d, path)
-        globbed = 
-          Dir.glob(
-            File.join(path, '**/**'),
-            File::FNM_DOTMATCH
-          ).delete_if{|path| %w[ .. ].include?(File.basename(path))}
-
-        [path, globbed]
+      if state == :paths
+        @paths << arg
       else
-        path
+        @command << arg
       end
     end
 
-    @paths.flatten!
-    @paths.compact!
-    @paths.uniq!
-    @paths.map! do |path|
-      begin
-        Rego.realpath(path)
-      rescue Object
-        nil
-      end
-    end
-    @paths.compact!
+    @paths.push(Dir.pwd) if @paths.empty?
+    @command.push('ls') if @command.empty?
+
+    @pretty = {
+      command: @command.map { |token| Shellwords.escape(token) }.join(' '),
+      paths: @paths.map { |path| Rego.relative_path(path, from: Dir.pwd) }.join(', ')
+    }
+
+    return unless @paths.empty?
+
+    abort "no paths to watch found in `#{$0} #{@argv.join(' ')}`"
   end
 
-  def print_a_summary_of_watched_files
-    puts "## #{ @command }"
-    puts "#"
-    puts @paths.join("\n")
+  def print_a_summary_of_watched_files!
+    Rego.say("#=> rego.command: #{@pretty[:command]}", color: :cyan)
+    Rego.say("#=> rego.paths: #{@pretty[:paths]}", color: :cyan)
     puts
   end
 
-  def loop_watching_files_and_running_commands
-    @initial_directories = []
-    @directories = []
-    @files = []
+  def loop_watching_files_and_running_commands!
+    cmdno = '0'
 
-    @paths.each do |path|
-      if test(?d, path)
-        @directories.push(Rego.realpath(path))
-        @initial_directories.push(Rego.realpath(path))
-      else
-        @files.push(Rego.realpath(path))
-        @directories.push(Rego.realpath(File.dirname(path)))
-      end
-    end
-
-    @directories.uniq!
-    @files.uniq!
-
-    stats = {} 
-
-    (@directories + @files).each do |file|
-      begin
-        stats[file] = File.stat(file)
-      rescue
-        nil
-      end
-    end
-
-  #
-    n        = '0'
-    line     = '#' * 42
-    $running = false
-
-  #
     rego =
-      proc do |*args|
-        path = args.flatten.compact.shift.to_s
+      proc do
+        puts
+        Rego.say("#=> rego.#{cmdno} @ #{Time.now.strftime('%H:%M:%S')} -> #{@pretty[:command]}", color: :yellow)
 
-        cmd =
-          if @command
-            @replacement ? @command.gsub(@replacement, path) : @command
-          else
-            "echo #{ path.inspect }"
-          end
-
-        puts line
-
-        Rego.say("# rego.#{ n } @ #{ Time.now.strftime('%H:%M:%S') } - #{ cmd }", :color => :magenta)
+        success = system(*@command)
         puts
 
-        system(cmd)
+        Rego.say("#=> rego.#{cmdno} @ #{Time.now.strftime('%H:%M:%S')} -> #{$?.exitstatus}",
+                 color: (success ? :green : :red))
         puts
 
-        Rego.say("# rego.#{ n } @ #{ Time.now.strftime('%H:%M:%S') } - #{ $?.exitstatus }", :color => :yellow)
-        puts
-
-        n.succ!
+        cmdno.succ!
       end
 
-  #
-    q = Queue.new
-
-    Thread.new do
-      loop do
-        args = q.pop
-
-        begin
-          rego.call(*args)
-        rescue Object
-        end
-      end
-    end
-
-    rego.call(:__START__)
-
-  #
-    fsevent = FSEvent.new
-
-    options = {
-      :latency     => 0.01,
-      :no_defer    => true,
-      :file_events => true,
-      :since_when  => 0
-    }
-
-    watchlist = (@files + @directories).uniq
-
-    watching = watchlist.inject(Hash.new){|hash, path| hash.update(path => true)}
-
-    fsevent.watch(watchlist, options) do |directories, meta|
-      meta   = Map.for(meta)
-      events = meta.events
-      paths  = []
-
-      meta.events.each do |event|
-        paths << event.path
-      end
-
-      paths.flatten.compact.sort.uniq.each do |path|
-        path =
-          begin
-            Rego.realpath(path)
-          rescue Object
-            next
-          end
-
-        ignore = false # TODO
-
-        unless ignore
-          @initial_directories.each do |directory|
-            if path =~ /^#{ Regexp.escape(directory) }\b/
-              watching[path] = true
-            end
-          end
-
-          if watching[path]
-            before = stats[path]
-            after = File.stat(path)
-
-            if before.nil? or after.mtime > before.mtime
-              stats[path] = after
-              @started_at ||= Time.now.to_f
-              q.push(path)
-            end
-          end
-        end
-      end
-
-=begin
-      unless $running
-        $running = true
-
-        args.flatten.each do |dir|
-          glob = File.join(dir, '**/**')
-          entries = Dir.glob(glob)
-
-          entries.each do |entry|
-            entry = File.expand_path(entry)
-            next unless stats.has_key?(entry)
-
-            begin
-              stats[entry] ||= File.stat(entry)
-              before = stats[entry]
-              after = File.stat(entry)
-            rescue
-              next
-            end
-
-            unless before.mtime == after.mtime
-              stats[entry] = after
-              rego[ entry ]
-            end
-          end
-        end
-      end
-      $running = false
-=end
+    listener = Listen.to(*@paths) do |_modified, _added, _removed|
+      rego.call
     end
 
     begin
-      fsevent.run
+      rego.call
+      listener.start
+      sleep
     rescue SignalException
       exit(0)
     end
   end
-=begin
-    fsevent = FSEvent.new
-
-    fsevent.watch(
-
-      @directories,
-        :latency     => 0.42,
-        :no_defer    => true,
-        :file_events => true,
-        :watch_root  => true,
-        :since_when  => 0
-
-    ) do |*args|
-      unless $running
-        $running = true
-
-        args.flatten.each do |dir|
-          glob = File.join(dir, '**/**')
-          entries = Dir.glob(glob)
-
-          entries.each do |entry|
-            entry = File.expand_path(entry)
-            next unless stats.has_key?(entry)
-
-            begin
-              stats[entry] ||= File.stat(entry)
-              before = stats[entry]
-              after = File.stat(entry)
-            rescue
-              next
-            end
-
-            unless before.mtime == after.mtime
-              stats[entry] = after
-              rego[ entry ]
-            end
-          end
-        end
-      end
-      $running = false
-    end
-
-    begin
-      fsevent.run
-    rescue SignalException
-      exit(0)
-    end
-  end
-=end
-}
-
+end
 
 BEGIN {
 # setup a child process to catch signals and brutally shut down the parent as
 # a monkey-patch to listen/rb-fsevent's busted ctrl-c handling...
 #
-if false
-  unless((pid = fork))
-    ppid = Process.ppid
+unless (pid = fork)
+  ppid = Process.ppid
 
-    begin
-      trap('SIGINT'){
-        %w(
-          SIGTERM SIGINT SIGQUIT SIGKILL
-        ).each do |signal|
-
-          begin
-            Process.kill("-#{ signal }", ppid)
-          rescue Object
-            nil
-          end
-
-          sleep(rand)
+  begin
+    trap('SIGINT') do
+      %w[
+        SIGTERM SIGINT SIGQUIT SIGKILL
+      ].each do |signal|
+        begin
+          Process.kill("-#{signal}", ppid)
+        rescue Object
+          nil
         end
-      }
 
-      loop do
-        Process.kill(0, ppid)
-        sleep(1)
+        sleep(rand)
       end
-    rescue Object => e
-      exit!(0)
     end
+
+    loop do
+      Process.kill(0, ppid)
+      sleep(1)
+    end
+  rescue Object => e
+    exit!(0)
   end
 end
 
-  require 'pathname'
-  require 'thread'
+require 'pathname'
 
-  this = Pathname.new(__FILE__).realpath.to_s
-  bindir = File.dirname(this)
-  rootdir = File.dirname(bindir)
-  libdir = File.join(rootdir, 'lib')
-  rego = File.join(libdir, 'rego.rb')
+this = Pathname.new(__FILE__).realpath.to_s
+bindir = File.dirname(this)
+rootdir = File.dirname(bindir)
+libdir = File.join(rootdir, 'lib')
+lib = File.join(libdir, 'rego.rb')
 
-  require(rego)
+require(lib)
 
-  STDOUT.sync = true
-  STDERR.sync = true
-  STDIN.sync = true
+STDOUT.sync = true
+STDERR.sync = true
+STDIN.sync = true
 }
