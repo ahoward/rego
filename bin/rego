@@ -29,12 +29,17 @@ Main do
     # run a specific test whenever it, or your app, has changed
     #
       ~> rego ./test -- ruby -Itest @
+
+    # run a server, killing it gracefully whenever files change
+    #
+      ~> rego --killer -- ./dev/server
   __
 
   option('--path=path', '-p')
   option('--paths=paths')
   option('--command=command', '-c')
   option('--version', '-v')
+  option('--killer', '-k')
 
   def run
     if params[:version].given?
@@ -86,33 +91,76 @@ Main do
   end
 
   def loop_watching_files_and_running_commands!
-    cmdno = '0'
+    @cmdno = '0'
+    @killer = params[:killer].given?
+    @pid = nil
 
     rego =
       proc do
         puts
-        Rego.say("#=> rego.#{cmdno} @ #{Time.now.strftime('%H:%M:%S')} -> #{@pretty[:command]}", color: :yellow)
+        Rego.say("#=> rego.#{@cmdno} @ #{Time.now.strftime('%H:%M:%S')} -> #{@pretty[:command]}", color: :yellow)
 
-        success = system(*@command)
+        @pid = Process.spawn(*@command)
+        Rego.say("#=> rego.#{@cmdno} @ #{Time.now.strftime('%H:%M:%S')} -> pid=#{@pid}", color: :cyan)
+        status = Process.wait(@pid)
+        @pid = nil
+
+        success = (@killer || (status==0))
+
         puts
+        Rego.say("#=> rego.#{@cmdno} @ #{Time.now.strftime('%H:%M:%S')} -> #{status}", color: (success ? :green : :red))
 
-        Rego.say("#=> rego.#{cmdno} @ #{Time.now.strftime('%H:%M:%S')} -> #{$?.exitstatus}",
-                 color: (success ? :green : :red))
+        @cmdno.succ!
         puts
-
-        cmdno.succ!
       end
 
     listener = Listen.to(*@paths) do |_modified, _added, _removed|
+      if @killer && @pid
+        kill!(@pid)
+      end
+
       rego.call
     end
 
     begin
-      rego.call
       listener.start
+      rego.call
       sleep
     rescue SignalException
       exit(0)
+    end
+  end
+
+  def kill!(pid)
+      Rego.say("#=> rego.#{@cmdno} @ #{Time.now.strftime('%H:%M:%S')} -> kill=#{@pid}", color: :magenta)
+
+    3.times do
+      %w[
+        SIGTERM SIGINT SIGQUIT SIGKILL
+      ].each do |signal|
+        begin
+          Process.kill("-#{signal}", pid)
+        rescue Object
+          nil
+        end
+
+        sleep(0.1)
+
+        return pid if alive?(pid)
+
+        sleep(rand)
+      end
+    end
+
+    abort("failed to kill pid=#{ pid }!") if alive?(pid)
+  end
+
+  def alive?(pid)
+    begin
+      Process.kill(0, pid)
+      true
+    rescue Errno::ESRCH
+      false
     end
   end
 end

@@ -3,7 +3,7 @@
 
 Gem::Specification::new do |spec|
   spec.name = "rego"
-  spec.version = "3.2.1"
+  spec.version = "4.2.0"
   spec.platform = Gem::Platform::RUBY
   spec.summary = "rego"
   spec.description = "description: rego kicks the ass"
@@ -22,7 +22,7 @@ Gem::Specification::new do |spec|
   
     spec.add_dependency(*["map", " ~> 6.6.0"])
   
-    spec.add_dependency(*["listen", " ~> 3.8.0"])
+    spec.add_dependency(*["listen", " ~> 3.9.0"])
   
 
   spec.extensions.push(*[])
