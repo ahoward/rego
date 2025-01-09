@@ -3,7 +3,7 @@
 
 Gem::Specification::new do |spec|
   spec.name = "rego"
-  spec.version = "4.2.0"
+  spec.version = "4.2.2"
   spec.platform = Gem::Platform::RUBY
   spec.summary = "rego"
   spec.description = "description: rego kicks the ass"
@@ -18,11 +18,11 @@ Gem::Specification::new do |spec|
   spec.test_files = nil
 
   
-    spec.add_dependency(*["main", " ~> 6.3.0"])
+    spec.add_dependency(*["main", " ~> 6"])
   
-    spec.add_dependency(*["map", " ~> 6.6.0"])
+    spec.add_dependency(*["map", " ~> 6"])
   
-    spec.add_dependency(*["listen", " ~> 3.9.0"])
+    spec.add_dependency(*["listen", " ~> 3.9"])
   
 
   spec.extensions.push(*[])

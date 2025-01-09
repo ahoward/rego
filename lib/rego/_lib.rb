@@ -1,5 +1,5 @@
 module Rego
-  Version = '4.2.0' unless defined?(Version)
+  Version = '4.2.2' unless defined?(Version)
 
   def self.version
     Rego::Version
@@ -7,9 +7,9 @@ module Rego
 
   def self.dependencies
     {
-      'main' => ['main', ' ~> 6.3.0'],
-      'map' => ['map', ' ~> 6.6.0'],
-      'listen' => ['listen', ' ~> 3.9.0']
+      'main' => ['main', ' ~> 6'],
+      'map' => ['map', ' ~> 6'],
+      'listen' => ['listen', ' ~> 3.9']
     }
   end
 
