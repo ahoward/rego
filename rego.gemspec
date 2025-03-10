@@ -6,7 +6,7 @@ Gem::Specification::new do |spec|
   spec.version = "4.2.2"
   spec.platform = Gem::Platform::RUBY
   spec.summary = "rego"
-  spec.description = "description: rego kicks the ass"
+  spec.description = "run arbitrary commands easily when files change"
   spec.license = "Ruby"
 
   spec.files =
